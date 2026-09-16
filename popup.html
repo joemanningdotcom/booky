@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Booky</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body class="popup">
+  <header>
+    <div class="brand">
+      <span class="dot" id="dot"></span>
+      <strong>Booky</strong>
+      <span class="muted" id="mode"></span>
+    </div>
+    <label class="switch" title="Auto-sort on/off">
+      <input type="checkbox" id="enabled">
+      <span></span>
+    </label>
+  </header>
+
+  <section class="inbox">
+    <div>
+      <div class="big" id="count">–</div>
+      <div class="muted">in <span id="inboxName">Inbox</span></div>
+    </div>
+    <button id="sortNow" class="primary">Sort now</button>
+  </section>
+
+  <div class="note" id="lastError" hidden></div>
+
+  <section id="pendingSection" hidden>
+    <h2>Waiting</h2>
+    <ul id="pending" class="log"></ul>
+  </section>
+
+  <section>
+    <h2>Recent</h2>
+    <ul id="log" class="log"></ul>
+    <p class="muted empty" id="empty" hidden>Nothing filed yet. Save a bookmark into <em id="inboxName2">Inbox</em> and it will show up here.</p>
+  </section>
+
+  <footer>
+    <a href="#" id="openOptions">Settings</a>
+    <span class="muted" id="lastRun"></span>
+  </footer>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

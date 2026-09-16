@@ -1,0 +1,11 @@
+# Editor / tooling
+.claude/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Packed extension builds
+*.zip
+*.crx
+*.pem

@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Booky settings</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body class="options">
+  <main>
+    <h1>Booky settings</h1>
+    <p class="lead">Save bookmarks into your inbox folder; Booky files them into your existing folders, or creates a new one when nothing fits. Rename folders whenever you like — Booky reads the current names every time it sorts.</p>
+
+    <section>
+      <h2>Folders</h2>
+      <div class="field">
+        <label for="inboxFolder">Inbox folder</label>
+        <select id="inboxFolder"></select>
+        <p class="hint">Anything saved here gets filed. Tip: after you save one bookmark into it, Chrome's bookmark bubble remembers it as the default.</p>
+      </div>
+      <div class="field">
+        <label for="rootFolder">Where categories live</label>
+        <select id="rootFolder"></select>
+        <p class="hint">Existing folders under here are the candidates, and new ones are created here. Default is the same place as your inbox folder.</p>
+      </div>
+      <div class="field checkbox">
+        <label><input type="checkbox" id="allowNewFolders"> Let Booky create new folders when nothing fits</label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Classifier</h2>
+      <div class="field">
+        <label for="provider">AI provider <span class="muted">(optional but recommended)</span></label>
+        <select id="provider"></select>
+        <p class="hint">Any of these works; pick whatever's cheapest or already in your wallet. Ollama runs models on your own machine for free. Without a provider, Booky uses local keyword and site matching — decent for folders that already have examples, weaker for brand-new categories.</p>
+      </div>
+      <div class="field">
+        <label for="model">Model</label>
+        <input type="text" id="model" list="modelSuggestions" spellcheck="false" autocomplete="off">
+        <datalist id="modelSuggestions"></datalist>
+        <p class="hint" id="modelHint">Suggestions appear as you type; any model id the provider accepts is fine.</p>
+      </div>
+      <div class="field" id="apiKeyField">
+        <label for="apiKey">API key <a id="keyUrl" href="#" target="_blank" rel="noopener" class="muted" hidden>get one ↗</a></label>
+        <div class="inline">
+          <input type="password" id="apiKey" autocomplete="off" spellcheck="false">
+          <button id="testKey" type="button">Test</button>
+        </div>
+        <p class="hint">Stored only in this browser profile (never synced) and only ever sent to the provider's endpoint below. <span id="keyStatus"></span></p>
+      </div>
+      <div class="field">
+        <label for="baseUrl">Endpoint <span class="muted">(advanced)</span></label>
+        <input type="text" id="baseUrl" spellcheck="false" autocomplete="off">
+        <p class="hint" id="baseUrlHint">Leave blank to use the provider's default. For Ollama, LM Studio, vLLM or any OpenAI-compatible server, put its <code>/v1</code> URL here. Booky asks for permission to reach this host when you save.</p>
+      </div>
+      <div class="field">
+        <label for="examplesPerFolder">Example bookmarks shown per folder</label>
+        <input type="number" id="examplesPerFolder" min="0" max="30">
+        <p class="hint">More examples help the model understand each folder, at slightly higher cost per sort.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Timing</h2>
+      <div class="field">
+        <label for="debounceMs">Wait after saving (seconds)</label>
+        <input type="number" id="debounceMs" min="1" max="120" step="1">
+        <p class="hint">Gives you time to edit the title in Chrome's bookmark bubble before Booky files it. Booky also sweeps the inbox every 15 minutes.</p>
+      </div>
+      <div class="field">
+        <label for="localMinScore">Local matching strictness</label>
+        <input type="number" id="localMinScore" min="1" max="20" step="0.5">
+        <p class="hint">Only used without an AI provider (or when the provider fails). Higher = fewer, surer matches; unmatched bookmarks stay in the inbox.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Memory</h2>
+      <p class="hint">When you move a bookmark out of the folder Booky chose, Booky remembers it and uses it as a hint next time. <span id="correctionsCount"></span></p>
+      <div class="inline">
+        <button id="clearCorrections" type="button">Forget corrections</button>
+        <button id="clearLog" type="button">Clear activity log</button>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button id="save" class="primary" type="button">Save</button>
+      <span id="saved" class="muted"></span>
+    </div>
+  </main>
+  <script src="options.js" type="module"></script>
+</body>
+</html>
