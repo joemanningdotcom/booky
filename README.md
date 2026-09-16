@@ -43,6 +43,7 @@ The model field is free text with suggestions, so a model that came out after th
 ## How it behaves
 
 - **Trigger:** a bookmark created in (or moved into) Inbox starts a short countdown (default 4 s, so you can finish editing the title). Editing the title restarts it. A background sweep also runs every 15 minutes and on browser start, so nothing gets stuck.
+- **No wasted requests:** the model is only called when there's a bookmark it hasn't looked at yet (new, retitled, undone, or dragged back in). A bookmark the model left in Inbox stays there quietly until you click **Sort now**, which asks about everything again. An empty Inbox never triggers a request.
 - **Candidates:** every folder under the "categories" root (default: the same parent as Inbox, e.g. the Bookmarks Bar), including nested ones. Inbox itself is excluded.
 - **New folders:** created next to your existing ones only when nothing fits. Turn this off in Settings to force everything into existing folders.
 - **Learning:** if you move a bookmark out of the folder Booky picked, that's recorded as a correction and shown to the classifier next time. Undoing from the popup counts too.

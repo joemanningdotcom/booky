@@ -38,8 +38,9 @@ chrome.runtime.onStartup.addListener(async () => {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'sync' && changes.enabled) refreshBadge().catch(() => {});
   // A new key, provider, or model means the classifier just changed: re-sort what's waiting.
-  if (area === 'local' && changes.apiKeys) scheduleSort(500);
-  if (area === 'sync' && (changes.provider || changes.model || changes.baseUrl)) scheduleSort(500);
+  if ((area === 'local' && changes.apiKeys) || (area === 'sync' && (changes.provider || changes.model || changes.baseUrl))) {
+    setSeen({}).then(() => scheduleSort(500)).catch(() => {});
+  }
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -84,6 +85,7 @@ chrome.bookmarks.onMoved.addListener(async (id, info) => {
     const log = await getLog();
     const entry = log.find((e) => e.bookmarkId === id && e.to === info.oldParentId && !e.undone);
     if (entry) await rejectFolder(id, entry, 'moved back to Inbox by the person');
+    await forgetSeen(id);
     if (settings.enabled) scheduleSort(settings.debounceMs);
     return;
   }
@@ -181,12 +183,20 @@ async function sortInboxOnce({ force }) {
   const root = await resolveRoot(settings, inbox);
 
   const rejected = await getRejected();
-  const items = (await getChildren(inbox.id))
+  const inInbox = (await getChildren(inbox.id))
     .filter((n) => n.url)
-    .slice(0, MAX_BATCH)
     .map((n) => ({ id: n.id, title: n.title, url: n.url }));
+
+  // Only spend a request on bookmarks the classifier hasn't already looked at in
+  // their current form. "Sort now" (force) asks about everything again.
+  const seen = await getSeen();
+  for (const id of Object.keys(seen)) if (!inInbox.some((n) => n.id === id)) delete seen[id]; // prune
+  const items = inInbox
+    .filter((n) => force || seen[n.id] !== fingerprint(n))
+    .slice(0, MAX_BATCH);
   if (!items.length) {
-    await setState({ lastRun: Date.now() });
+    await setSeen(seen);
+    await setState({ lastRun: Date.now(), lastSkipped: inInbox.length });
     return;
   }
 
@@ -228,6 +238,13 @@ async function sortInboxOnce({ force }) {
       allowNewFolders: settings.allowNewFolders,
       minScore: settings.localMinScore,
     });
+  }
+
+  // Mark as looked-at only when the intended classifier actually ran; if the model
+  // failed and local matching stood in, the next sweep should give the model another go.
+  if (!lastError) {
+    for (const item of items) seen[item.id] = fingerprint(item);
+    await setSeen(seen);
   }
 
   // Apply. New folders created in this run are cached so a batch shares them.
@@ -275,8 +292,31 @@ async function sortInboxOnce({ force }) {
     });
   }
 
-  await setState({ lastRun: Date.now(), lastMode: mode, lastError, lastMoved: moved });
+  await setState({ lastRun: Date.now(), lastMode: mode, lastError, lastMoved: moved, lastSkipped: 0 });
   await refreshBadge();
+}
+
+// ---- "Already looked at" bookkeeping (chrome.storage.local, keyed by bookmark id) ----
+
+function fingerprint(n) {
+  return `${n.title}\u0000${n.url}`;
+}
+
+async function getSeen() {
+  const { seen } = await chrome.storage.local.get('seen');
+  return seen || {};
+}
+
+async function setSeen(seen) {
+  await chrome.storage.local.set({ seen });
+}
+
+async function forgetSeen(id) {
+  const seen = await getSeen();
+  if (id in seen) {
+    delete seen[id];
+    await setSeen(seen);
+  }
 }
 
 async function undo(ts, bookmarkId) {
@@ -298,6 +338,7 @@ async function undo(ts, bookmarkId) {
   entry.undone = true;
   await chrome.storage.local.set({ log });
   // Back in the inbox with that folder ruled out: try again right away.
+  await forgetSeen(bookmarkId);
   scheduleSort(500);
 }
 
@@ -356,12 +397,14 @@ async function getStatus() {
   // explain itself and offer one-click filing.
   const root = await resolveRoot(settings, inbox);
   const folders = await collectFolders(root.id, inbox.id);
+  const seen = await getSeen();
   const pending = kids
     .filter((k) => k.url)
     .map((k) => ({
       id: k.id,
       title: k.title,
       url: k.url,
+      seen: seen[k.id] === fingerprint(k),
       rejectedPaths: [...(rejected.get(k.id) || [])].map((id) => folders.find((f) => f.id === id)?.path).filter(Boolean),
       guesses: rankLocally({ id: k.id, title: k.title, url: k.url }, folders)
         .filter((g) => g.score > 0 && !rejected.get(k.id)?.has(g.folderId))

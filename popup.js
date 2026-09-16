@@ -82,7 +82,9 @@ function renderPending(status) {
       .join('');
     const notThere = p.rejectedPaths?.length ? ` Not: ${p.rejectedPaths.map(leaf).join(', ')}.` : '';
     const explain = (status.mode === 'llm'
-      ? `Waiting for the next run — click Sort now to file it with ${status.providerLabel || 'the model'}.`
+      ? (p.seen
+        ? `${status.providerLabel || 'The model'} looked at this and didn't find a fit — pick a folder, or Sort now to ask again.`
+        : `Queued — it will be filed on the next run (or click Sort now).`)
       : p.guesses.length
         ? `Best guess scored ${p.guesses[0].score.toFixed(1)}; needs ${status.minScore} to file automatically.`
         : 'Nothing similar in your folders yet.') + notThere;
